@@ -34,13 +34,16 @@ FILE: $(OBJECTS) $(TESTDIR)/$(FILE).c
 	$(CC) $(OBJECTFULL) $(TESTDIR)/$(FILE).c -o $(BINDIR)/$(FILE).out $(LIBS) $(CFLAGS) 
 
 
-$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
+$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c dirs
 	$(CC) -c $< -o $@ $(LIBS) $(CFLAGS) 
 
-.PHONEY: clean
+.PHONEY: clean dirs
 clean:
 	@$(rm) $(OBJECTS)
 	@$(rm) $(BINDIR)/$(AES)
 	@$(rm) $(BINDIR)/$(LARGE)
 	@$(rm) $(BINDIR)/$(FILE)
 
+dirs:
+	mkdir -p $(OBJDIR)
+	mkdir -p $(BINDIR)
