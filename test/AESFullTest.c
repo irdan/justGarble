@@ -47,7 +47,8 @@ void buildAESCircuit() {
 	int mixColumnOutputs[n];
 	int round;
 	block labels[2 * n];
-	block outputbs[m];
+	block outputbs[2 * m]; //Should have two output labels per output bit. 
+                         //Justine Sherry 21 Jan 2015
 	OutputMap outputMap = outputbs;
 	InputLabels inputLabels = labels;
 	int i;
@@ -94,7 +95,7 @@ int main() {
 
 	GarbledCircuit aesCircuit;
 	block inputLabels[2 * n];
-	block outputMap[m];
+	block outputMap[2 * m]; //Should have two output labels per output bit.
 	int i, j;
 	buildAESCircuit();
 	readCircuitFromFile(&aesCircuit, AES_CIRCUIT_FILE_NAME);
