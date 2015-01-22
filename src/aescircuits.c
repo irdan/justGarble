@@ -75,6 +75,93 @@ int ShiftRows(GarbledCircuit *gc, GarblingContext *garblingContext, int* inputs,
 	return 0;
 }
 
+int xTime(GarbledCircuit* gc, GarblingContext* garblingContext, int* x, int* out){
+  //XORED indices: 3,4,6,7
+  int i;
+  int idx_top[4];
+  for(i = 0; i < 4; i++) idx_top[i] = x[0];
+  
+  int vals[4];
+  vals[0] = x[4];
+  vals[1] = x[5];
+  vals[2] = x[7];
+  vals[3] = fixedZeroWire(gc, garblingContext);
+  
+  int xor_inputs[8];
+  memcpy(xor_inputs, vals, 4 * sizeof(int));
+  memcpy(&(xor_inputs[4]), idx_top, 4 * sizeof(int));
+  int xor_outputs[4];
+  XORCircuit(gc, garblingContext, 8, xor_inputs, xor_outputs);
+  
+  //Length of x and out should be 8
+  out[0] = x[1];
+  out[1] = x[2];
+  out[2] = x[3];
+  out[3] = xor_outputs[0];
+  out[4] = xor_outputs[1];
+  out[5] = x[6];
+  out[6] = xor_outputs[2];
+  out[7] = xor_outputs[3];
+}
+
+
+//Called 4 times, each round mix 4 bytes
+int JustineMixColumns(GarbledCircuit* gc, GarblingContext* garblingContext,
+    int* inputs, int* output){
+
+    //t = state[i][0]
+    int t[8];
+    memcpy(t, &(inputs[0]), 8 * sizeof(int));       //Using some weird indexing notation
+                                                    //Helps me not get lost!
+
+    //Tmp = state[0] ^ state[1] ^ state [2] ^ state [3]
+    int Tmp_in[16];
+    int Tmp_out[8];
+    memcpy(Tmp_in, inputs, 8 * sizeof(int));
+    memcpy(&(Tmp_in[8]), &(inputs[8]),8 * sizeof(int));
+    XORCircuit(gc, garblingContext, 16, Tmp_in, Tmp_out);
+    
+    memcpy(Tmp_in, Tmp_out, 8 * sizeof(int));
+    memcpy(&(Tmp_in[8]), &(inputs[16]), 8 * sizeof(int));
+    XORCircuit(gc, garblingContext, 16, Tmp_in, Tmp_out);
+
+    memcpy(Tmp_in, Tmp_out, 8 * sizeof(int));
+    memcpy(&(Tmp_in[8]), &(inputs[24]), 8 * sizeof(int));
+    XORCircuit(gc, garblingContext, 16, Tmp_in, Tmp_out);
+   
+    int* Tmp = Tmp_out;
+    //Tm  = (*state)[i][0] ^ (*state)[i][1] ; Tm = xtime(Tm);  (*state)[i][0] ^= Tm ^ Tmp ;
+    int i;
+    for(i = 0; i <=24; i += 8){
+    int Tm_in_xor[16];
+    int Tm_out_xor[8];
+    memcpy(Tm_in_xor, &(inputs[i]), 8 * sizeof(int)); //O and 1 are side by side but do for clairty
+    memcpy(&(Tm_in_xor[8]), i == 24 ? t : &(inputs[i + 8]), 8 * sizeof(int));
+    XORCircuit(gc, garblingContext, 16, Tm_in_xor, Tm_out_xor);
+
+    int Tm_out_xtime[8];
+    int final_xor_out[8];
+    xTime(gc, garblingContext, Tm_out_xor, Tm_out_xtime);
+  
+    int final_xor_in[16];
+    memcpy(final_xor_in, Tm_out_xtime, 8 * sizeof(int));
+    memcpy(&(final_xor_in[8]), Tmp, 8 * sizeof(int));
+    XORCircuit(gc, garblingContext, 16, final_xor_in, final_xor_out);
+
+    int final_final_xor_in[16];
+    int final_final_xor_out[8];
+    memcpy(final_final_xor_in, final_xor_out, 8 * sizeof(int));
+    memcpy(&(final_final_xor_in[8]), &(inputs[i]), 8 * sizeof(int));
+    XORCircuit(gc, garblingContext, 16, final_final_xor_in, final_final_xor_out);
+
+    memcpy(&(output[i]), final_final_xor_out, 8 * sizeof(int));
+    }
+   
+
+    return 0;
+}
+
+
 int MixColumns(GarbledCircuit *gc, GarblingContext *garblingContext,
 		int* inputs, int* outputs) {
 	int mulOut[4][8];
