@@ -13,7 +13,7 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 
 IDIR =../include
-CC=gcc -g 
+CC=gcc 
 CFLAGS= -O3 -lm -lcrypto -lgnutlsxx -lgnutls -lrt -lpthread -maes -msse4 -lssl -lmsgpack -march=native -I$(IDIR)
 
 

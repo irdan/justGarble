@@ -81,17 +81,17 @@ int xTime(GarbledCircuit* gc, GarblingContext* garblingContext, int* x, int* out
   int idx_top[4];
   for(i = 0; i < 4; i++) idx_top[i] = x[0];
 
-  int vals[4];
+  int vals[3];
   vals[0] = x[4];
   vals[1] = x[5];
   vals[2] = x[7];
-  vals[3] = fixedZeroWire(gc, garblingContext);
+  //vals[3] = fixedZeroWire(gc, garblingContext);
 
-  int xor_inputs[8];
-  memcpy(xor_inputs, vals, 4 * sizeof(int));
-  memcpy(&(xor_inputs[4]), idx_top, 4 * sizeof(int));
-  int xor_outputs[4];
-  XORCircuit(gc, garblingContext, 8, xor_inputs, xor_outputs);
+  int xor_inputs[6];
+  memcpy(xor_inputs, vals, 3 * sizeof(int));
+  memcpy(&(xor_inputs[3]), idx_top, 3 * sizeof(int));
+  int xor_outputs[3];
+  XORCircuit(gc, garblingContext, 6, xor_inputs, xor_outputs);
 
   //Length of x and out should be 8
   out[0] = x[1];
@@ -101,7 +101,7 @@ int xTime(GarbledCircuit* gc, GarblingContext* garblingContext, int* x, int* out
   out[4] = xor_outputs[1];
   out[5] = x[6];
   out[6] = xor_outputs[2];
-  out[7] = xor_outputs[3];
+  out[7] = x[0];
 }
 
 //Reference programmatic implementation is in calculate_sbox.rb

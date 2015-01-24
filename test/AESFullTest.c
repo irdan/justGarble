@@ -107,22 +107,33 @@ void buildAESCircuit() {
 
   memset(subBytesOutputs, 0, sizeof(int) * 128);
 
+  long gates = garblingContext.gateIndex;
   AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
+  printf("Round key added %li gates\n", garblingContext.gateIndex - gates);
+  gates = garblingContext.gateIndex;
   for (round = 1; round < 11; round++) {
 
     for (i = 0; i < 16; i++) {
       JustineSBOX(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
           subBytesOutputs + 8 * i);
     }
+     printf("SBOX added %li gates\n", garblingContext.gateIndex - gates);
+    gates = garblingContext.gateIndex; 
+
+
     ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
         shiftRowsOutputs);
-    
+     printf("ShiftRows added %li gates\n", garblingContext.gateIndex - gates);
+    gates = garblingContext.gateIndex; 
+
     for (i = 0; i < 4; i++) {
       if (round != roundLimit)
         JustineMixColumns(&garbledCircuit, &garblingContext,
             shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
     }
-    
+     printf("MixColumns (%i) added %li gates\n", round, garblingContext.gateIndex - gates);
+    gates = garblingContext.gateIndex; 
+
     for (i = 0; i < 128; i++) {
       if(round != roundLimit) addKeyInputs[i] = mixColumnOutputs[i];
       else addKeyInputs[i] = shiftRowsOutputs[i];
@@ -130,15 +141,18 @@ void buildAESCircuit() {
     }
 
     AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
-  
+    printf("Round key added %li gates\n", garblingContext.gateIndex - gates);
+    gates = garblingContext.gateIndex; 
   }
   
   final = addKeyOutputs; 
     finishBuilding(&garbledCircuit, &garblingContext, outputMap, final);
 
-
-
+   struct timeval garble_start;
+  struct timeval garble_stop;
+  gettimeofday(&garble_start, NULL);
   garbleCircuit(&garbledCircuit, inputLabels, outputMap);
+  gettimeofday(&garble_stop, NULL);
 
   //JMS: Replace timing with check for correctness
   block finalOutput[m];
@@ -162,13 +176,18 @@ void buildAESCircuit() {
   make_uint_array_from_blob(inputs, input_aes, 16);
   unsigned char* blob = &key.rd_key;
 
-  printf("(%u) Input key...", n / 8 / 16);
+  //printf("(%u) Input key...", n / 8 / 16);
   make_uint_array_from_blob(inputs + 128, blob, n/8 - 16);
-  for(x = 0; x < n; x++) printf("%u", inputs[x]);
-  printf("\n\n");
+  //for(x = 0; x < n; x++) printf("%u", inputs[x]);
+  //printf("\n\n");
 
   extractLabels(extractedLabels, inputLabels, inputs, n);
+  struct timeval eval_start;
+  struct timeval eval_stop;
+  gettimeofday(&eval_start, NULL);
   evaluate(&garbledCircuit, extractedLabels, finalOutput);
+  gettimeofday(&eval_stop, NULL);
+
 
   int outputVals[m];
   memset(outputVals, 0, sizeof(int) * m);
@@ -220,9 +239,12 @@ void buildAESCircuit() {
     if(x % 8 == 0) printf(" ");
     printf("%u", outputVals[x]);
   }
-  printf("\n");
+  printf("\n\n");
 
   //writeCircuitToFile(&garbledCircuit, AES_CIRCUIT_FILE_NAME);
+
+  printf("EVAL TAKES: %u us\n", eval_stop.tv_usec - eval_start.tv_usec);
+  printf("GARBLE TAKES: %u us\n", garble_stop.tv_usec - garble_start.tv_usec);
 }
 
 int main() {
