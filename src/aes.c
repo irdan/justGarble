@@ -131,10 +131,12 @@ inline void AES_encrypt(const unsigned char *in, unsigned char *out,
 	int j, rnds = ROUNDS(key);
 	const __m128i *sched = ((__m128i *) (key->rd_key));
 	__m128i tmp = _mm_load_si128((__m128i *) in);
+  
 	tmp = _mm_xor_si128(tmp, sched[0]);
-	for (j = 1; j < rnds; j++)
+	for (j = 1; j < rnds; j++){
 		tmp = _mm_aesenc_si128(tmp, sched[j]);
-	tmp = _mm_aesenclast_si128(tmp, sched[j]);
+  }
+  tmp = _mm_aesenclast_si128(tmp, sched[j]);
 	_mm_store_si128((__m128i *) out, tmp);
 }
 

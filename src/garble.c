@@ -25,6 +25,7 @@
 #include "../include/aes.h"
 #include "../include/justGarble.h"
 #include <malloc.h>
+#include <stdint.h>
 #include <wmmintrin.h>
 #include <time.h>
 
@@ -953,17 +954,26 @@ int blockEqual(block a, block b) {
 }
 
 int mapOutputs(OutputMap outputMap, OutputMap outputMap2, int *vals, int m) {
-	int i;
+	int i,j;
 	for (i = 0; i < m; i++) {
-		if (blockEqual(outputMap2[i], outputMap[2 * i])) {
+    /*int matched = 0;
+    uint64_t* bl = (uint64_t*) &(outputMap[i]);
+    printf("Checking matches for label at %i [%u%u]\n", i, bl[0],bl[1]);
+		for(j = 0; j < m * 2; j++){
+      if(blockEqual(outputMap2[i], outputMap[j])){
+        printf("-- We have a match!; label %i at mapidx %i (%i)\n", i, j, j/2);
+        matched++;
+      }
+    }
+    printf("---- In total, %i matched %i indices\n", i, matched); */
+
+    if (blockEqual(outputMap2[i], outputMap[2 * i])) {
 			vals[i] = 0;
-			continue;
-		}
-		if (blockEqual(outputMap2[i], outputMap[2 * i + 1])) {
+		}else if (blockEqual(outputMap2[i], outputMap[2 * i + 1])) {
 			vals[i] = 1;
-			continue;
-		}
-		printf("MAP FAILED %d\n", i);
+		}else{
+		  printf("MAP FAILED %d\n", i);
+    }
 	}
 	return 0;
 

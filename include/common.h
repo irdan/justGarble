@@ -121,7 +121,7 @@ void inline TRUNC_COPY(char *X, char *Y);
 
 
 //#define ROW_REDUCTION
-#define FREE_XOR
+//#define FREE_XOR
 #define DKC2
 //#define TRUNCATED
 
