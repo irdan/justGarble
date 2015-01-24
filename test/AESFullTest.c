@@ -43,7 +43,6 @@ int *final;
 block* oldOutputMapTest;
 
 
-
 #define BIGENDHEYO
 void make_uint_array_from_blob(int* dest, unsigned char* blob, uint32_t bloblen)
 {
@@ -72,7 +71,7 @@ void make_uint_array_from_blob(int* dest, unsigned char* blob, uint32_t bloblen)
     dest[x * 8] = (0x01 & thisblob) == 0x01 ? 1 : 0; 
 
 #endif
-  
+
   }
 }
 
@@ -106,54 +105,55 @@ void buildAESCircuit() {
 
   countToN(addKeyInputs, n * 2);
 
-  AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs, addKeyOutputs);
+  memset(subBytesOutputs, 0, sizeof(int) * 128);
 
-  memset(mixColumnOutputs, 0, sizeof(int) * 128);
-    for (i = 0; i < 4; i++) {
-        JustineMixColumns(&garbledCircuit, &garblingContext,
-            addKeyOutputs + i * 32, mixColumnOutputs + 32 * i);
-    }
- 
+  //AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
+  for(i = 0; i < 1; i++){
+  JustineMulInverseGF256(&garbledCircuit, &garblingContext, addKeyInputs,  subBytesOutputs + (i * 8));
+  }
 
-final = mixColumnOutputs;
+  final = subBytesOutputs;
+  //printf("HEY THERE!!!\n");
+ // for(i = 0; i < 128; i++) printf(" %u ", subBytesOutputs[i]);
+  //printf("\n");
   /* 
-  for (round = 1; round < 2; round++) {
+     for (round = 1; round < 2; round++) {
 
-    for (i = 0; i < 16; i++) {
-      SubBytes(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
-          subBytesOutputs + 8 * i);
-    }
+     for (i = 0; i < 16; i++) {
+     SubBytes(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
+     subBytesOutputs + 8 * i);
+     }
 
-    ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
-        shiftRowsOutputs);
+     ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
+     shiftRowsOutputs);
 
-    for (i = 0; i < 4; i++) {
-      if (round != roundLimit - 1)
-        MixColumns(&garbledCircuit, &garblingContext,
-            shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
-    }
-    for (i = 0; i < 128; i++) {
-      addKeyInputs[i] = shiftRowsOutputs[i];
-      addKeyInputs[i + 128] = (round + 1) * 128 + i;
-    }
+     for (i = 0; i < 4; i++) {
+     if (round != roundLimit - 1)
+     MixColumns(&garbledCircuit, &garblingContext,
+     shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
+     }
+     for (i = 0; i < 128; i++) {
+     addKeyInputs[i] = shiftRowsOutputs[i];
+     addKeyInputs[i + 128] = (round + 1) * 128 + i;
+     }
 
-    AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
-  }
-  for (i = 0; i < 16; i++) {
-    SubBytes(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
-        subBytesOutputs + 8 * i);
-  }
+     AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
+     }
+     for (i = 0; i < 16; i++) {
+     SubBytes(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
+     subBytesOutputs + 8 * i);
+     }
 
-  ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
-      shiftRowsOutputs);
+     ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
+     shiftRowsOutputs);
 
-  for (i = 0; i < 128; i++) {
-    addKeyInputs[i] = shiftRowsOutputs[i];
-    addKeyInputs[i + 128] = (12) * 128 + i;
-  }
+     for (i = 0; i < 128; i++) {
+     addKeyInputs[i] = shiftRowsOutputs[i];
+     addKeyInputs[i + 128] = (12) * 128 + i;
+     }
 
-  AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs) ;
-  final = addKeyOutputs;*/
+     AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs) ;
+     final = addKeyOutputs;*/
   finishBuilding(&garbledCircuit, &garblingContext, outputMap, final);
 
 
@@ -164,6 +164,7 @@ final = mixColumnOutputs;
   block finalOutput[m];
   block extractedLabels[n];
 
+  //PARAMETERS WE GIVE TO ALL THREE IMPLEMENTATIONS
   __m128i mykey =  randomBlock();
   unsigned char* t = (unsigned char*) &(mykey);
   AES_KEY key;
@@ -171,13 +172,19 @@ final = mixColumnOutputs;
   AES_set_encrypt_key((unsigned char*) &mykey, 128, &key);
 
   int x = 0;
+  unsigned char input_aes[16];
+  memset(input_aes, 0x57, 16);
+  unsigned char output_aes[16];
+
+  //BEEP BOOP
+
   int inputs[n];
-  for(x = 0; x < 128; x++) inputs[x] = 1; 
+  make_uint_array_from_blob(inputs, input_aes, 16);
   unsigned char* blob = &key.rd_key;
 
   printf("(%u) Input key...", key.rounds);
   make_uint_array_from_blob(inputs + 128, blob, n/8 - 16);
-  for(x = 0; x < n; x++) printf("%u", inputs[x]);
+  for(x = 0; x < 128; x++) printf("%u", inputs[x]);
   printf("\n\n");
 
   extractLabels(extractedLabels, inputLabels, inputs, n);
@@ -186,10 +193,6 @@ final = mixColumnOutputs;
   int outputVals[m];
   memset(outputVals, 0, sizeof(int) * m);
   mapOutputs(outputMap, finalOutput, outputVals, m);
-
-  unsigned char input_aes[16];
-  memset(input_aes, 0xff, 16);
-  unsigned char output_aes[16];
 
   printf("THEIR CODE:\n");
   AES_encrypt(input_aes, output_aes, &key);
@@ -208,8 +211,8 @@ final = mixColumnOutputs;
   gtlskey.size = sizeof(__m128i);
   gnutls_datum_t* iv = NULL;
   int res = gnutls_cipher_init(&aes_handle, cipher, &gtlskey, iv); 
-  
-  
+
+
   unsigned char output_gnutls[128];
   memset(output_gnutls, 0, 128);
   int success = gnutls_cipher_encrypt2(aes_handle, input_aes, 16, output_gnutls, 16);
@@ -233,6 +236,8 @@ final = mixColumnOutputs;
   //Should be 1's and 0's.
   printf("Final output of circuit: \n");
   for(x = 0; x < 128; x++){
+  
+    if(x % 8 == 0) printf(" ");
     printf("%u", outputVals[x]);
   }
   printf("\n");

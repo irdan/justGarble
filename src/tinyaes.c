@@ -349,11 +349,7 @@ static void MixColumns(void)
   {  
     t   = (*state)[i][0];
     Tmp = (*state)[i][0] ^ (*state)[i][1] ^ (*state)[i][2] ^ (*state)[i][3] ;
-    printf("TMP %" PRIu8 "\n", Tmp);
-    Tm  = (*state)[i][0] ^ (*state)[i][1] ; Tm = xtime(Tm);  
-    printf("XTIME %" PRIu8 "\n", Tm);
-    (*state)[i][0] ^= Tm ^ Tmp ;
-    printf("FINAL XOR %" PRIu8 "\n", (*state[i][0]));
+    Tm  = (*state)[i][0] ^ (*state)[i][1] ; Tm = xtime(Tm);  (*state)[i][0] ^= Tm ^ Tmp ;
     Tm  = (*state)[i][1] ^ (*state)[i][2] ; Tm = xtime(Tm);  (*state)[i][1] ^= Tm ^ Tmp ;
     Tm  = (*state)[i][2] ^ (*state)[i][3] ; Tm = xtime(Tm);  (*state)[i][2] ^= Tm ^ Tmp ;
     Tm  = (*state)[i][3] ^ t ;        Tm = xtime(Tm);  (*state)[i][3] ^= Tm ^ Tmp ;
@@ -451,9 +447,8 @@ static void Cipher(void)
   uint8_t round = 0;
 
   // Add the First round key to the state before starting the rounds.
-  AddRoundKey(0); 
-  MixColumns();
 
+  SubBytes();
   printf("InterMed:\n");
   print_intermed_state();
   printf("\n");

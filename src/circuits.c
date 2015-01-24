@@ -715,6 +715,38 @@ int MultiXORCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int d,
 	return res;
 }
 
+int JustineORCircuit(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
+		int n, int* inputs, int* outputs) {
+	int i;
+	int internalWire;
+	int split = n / 2;
+	int res = 0;
+	for (i = 0; i < n / 2; i++) {
+		internalWire = getNextWire(garblingContext);
+		res = ORGate(garbledCircuit, garblingContext, inputs[i],
+				inputs[split + i], internalWire);
+		outputs[i] = internalWire;
+	}
+	return res;
+}
+
+
+int JustineANDCircuit(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
+		int n, int* inputs, int* outputs) {
+	int i;
+	int internalWire;
+	int split = n / 2;
+	int res = 0;
+	for (i = 0; i < n / 2; i++) {
+		internalWire = getNextWire(garblingContext);
+		res = ANDGate(garbledCircuit, garblingContext, inputs[i],
+				inputs[split + i], internalWire);
+		outputs[i] = internalWire;
+	}
+	return res;
+}
+
+
 int XORCircuit(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
 		int n, int* inputs, int* outputs) {
 	int i;
