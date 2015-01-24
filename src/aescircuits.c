@@ -190,7 +190,57 @@ int JustineMulInverseGF256(GarbledCircuit* gc, GarblingContext* garblingContext,
 
 //Affine transformation is mathematician for LOTSA XORs
 int JustineSBoxXOR(GarbledCircuit* gc, GarblingContext* garblingContext, int* x, int* out){
+  
+  memcpy(out, x, sizeof(int) * 8);
+  int i;
+  int* b_i = x;
+  int b_i_4[8]; for(i = 0; i < 8; i++) b_i_4[(i + 4) % 8] = b_i[i];
+  int b_i_5[8]; for(i = 0; i < 8; i++) b_i_5[(i + 5) % 8] = b_i[i];
+  int b_i_6[8]; for(i = 0; i < 8; i++) b_i_6[(i + 6) % 8] = b_i[i];
+  int b_i_7[8]; for(i = 0; i < 8; i++) b_i_7[(i + 7) % 8] = b_i[i];
+  int c[8]; 
+  c[0] = fixedZeroWire(gc, garblingContext);
+  c[1] = fixedOneWire(gc, garblingContext);
+  c[2] = fixedOneWire(gc, garblingContext);
+  c[3] = fixedZeroWire(gc, garblingContext);
+  c[4] = fixedZeroWire(gc, garblingContext);
+  c[5] = fixedZeroWire(gc, garblingContext);
+  c[6] = fixedOneWire(gc, garblingContext);
+  c[7] = fixedOneWire(gc, garblingContext);
+   
+  int xor_in[16];
+  int xor_out[8];
+  
+  memcpy(xor_in, b_i, sizeof(int) * 8);
+  memcpy(&(xor_in[8]), b_i_4, sizeof(int) * 8);
+  XORCircuit(gc, garblingContext, 16, xor_in, xor_out);
+ 
+  memcpy(xor_in, xor_out, sizeof(int) * 8);
+  memcpy(&(xor_in[8]), b_i_5, sizeof(int) * 8);
+  XORCircuit(gc, garblingContext, 16, xor_in, xor_out);
+ 
+  memcpy(xor_in, xor_out, sizeof(int) * 8);
+  memcpy(&(xor_in[8]), b_i_6, sizeof(int) * 8);
+  XORCircuit(gc, garblingContext, 16, xor_in, xor_out);
 
+  memcpy(xor_in, xor_out, sizeof(int) * 8);
+  memcpy(&(xor_in[8]), b_i_7, sizeof(int) * 8);
+  XORCircuit(gc, garblingContext, 16, xor_in, xor_out);
+
+  memcpy(xor_in, xor_out, sizeof(int) * 8);
+  memcpy(&(xor_in[8]), c, sizeof(int) * 8);
+  XORCircuit(gc, garblingContext, 16, xor_in, xor_out);
+
+  memcpy(out, xor_out, sizeof(int) * 8);
+  return SUCCESS;
+}
+
+
+int JustineSBOX(GarbledCircuit* gc, GarblingContext* garblingContext, int* inputs, int* output){
+  int tmp[8];
+  JustineMulInverseGF256(gc, garblingContext, inputs, tmp);
+  JustineSBoxXOR(gc, garblingContext, tmp, output);
+  return SUCCESS;
 }
 
 //Called 4 times, each round mix 4 bytes

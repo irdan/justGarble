@@ -83,8 +83,8 @@ void buildAESCircuit() {
   int roundLimit = 10;
   int n = 128 + 128 * (roundLimit + 1); //XOR the key 11 times
   int m = 128;
-  int q = 50000; //Just an upper bound
-  int r = 50000;
+  int q = 1000000; //Just an upper bound
+  int r = 1000000;
   int inp[n];
   countToN(inp, n);
   int addKeyInputs[n * (roundLimit + 1)];
@@ -107,54 +107,34 @@ void buildAESCircuit() {
 
   memset(subBytesOutputs, 0, sizeof(int) * 128);
 
-  //AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
-  for(i = 0; i < 1; i++){
-  JustineMulInverseGF256(&garbledCircuit, &garblingContext, addKeyInputs,  subBytesOutputs + (i * 8));
+  AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
+  for (round = 1; round < 11; round++) {
+
+    for (i = 0; i < 16; i++) {
+      JustineSBOX(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
+          subBytesOutputs + 8 * i);
+    }
+    ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
+        shiftRowsOutputs);
+    
+    for (i = 0; i < 4; i++) {
+      if (round != roundLimit)
+        JustineMixColumns(&garbledCircuit, &garblingContext,
+            shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
+    }
+    
+    for (i = 0; i < 128; i++) {
+      if(round != roundLimit) addKeyInputs[i] = mixColumnOutputs[i];
+      else addKeyInputs[i] = shiftRowsOutputs[i];
+      addKeyInputs[i + 128] = (round + 1) * 128 + i;
+    }
+
+    AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
+  
   }
-
-  final = subBytesOutputs;
-  //printf("HEY THERE!!!\n");
- // for(i = 0; i < 128; i++) printf(" %u ", subBytesOutputs[i]);
-  //printf("\n");
-  /* 
-     for (round = 1; round < 2; round++) {
-
-     for (i = 0; i < 16; i++) {
-     SubBytes(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
-     subBytesOutputs + 8 * i);
-     }
-
-     ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
-     shiftRowsOutputs);
-
-     for (i = 0; i < 4; i++) {
-     if (round != roundLimit - 1)
-     MixColumns(&garbledCircuit, &garblingContext,
-     shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
-     }
-     for (i = 0; i < 128; i++) {
-     addKeyInputs[i] = shiftRowsOutputs[i];
-     addKeyInputs[i + 128] = (round + 1) * 128 + i;
-     }
-
-     AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs);
-     }
-     for (i = 0; i < 16; i++) {
-     SubBytes(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
-     subBytesOutputs + 8 * i);
-     }
-
-     ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
-     shiftRowsOutputs);
-
-     for (i = 0; i < 128; i++) {
-     addKeyInputs[i] = shiftRowsOutputs[i];
-     addKeyInputs[i + 128] = (12) * 128 + i;
-     }
-
-     AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,addKeyOutputs) ;
-     final = addKeyOutputs;*/
-  finishBuilding(&garbledCircuit, &garblingContext, outputMap, final);
+  
+  final = addKeyOutputs; 
+    finishBuilding(&garbledCircuit, &garblingContext, outputMap, final);
 
 
 
@@ -182,9 +162,9 @@ void buildAESCircuit() {
   make_uint_array_from_blob(inputs, input_aes, 16);
   unsigned char* blob = &key.rd_key;
 
-  printf("(%u) Input key...", key.rounds);
+  printf("(%u) Input key...", n / 8 / 16);
   make_uint_array_from_blob(inputs + 128, blob, n/8 - 16);
-  for(x = 0; x < 128; x++) printf("%u", inputs[x]);
+  for(x = 0; x < n; x++) printf("%u", inputs[x]);
   printf("\n\n");
 
   extractLabels(extractedLabels, inputLabels, inputs, n);
@@ -236,7 +216,7 @@ void buildAESCircuit() {
   //Should be 1's and 0's.
   printf("Final output of circuit: \n");
   for(x = 0; x < 128; x++){
-  
+
     if(x % 8 == 0) printf(" ");
     printf("%u", outputVals[x]);
   }
@@ -247,7 +227,7 @@ void buildAESCircuit() {
 
 int main() {
   int rounds = 10;
-  int n = 128 + (128 * rounds);
+  int n = 128 + (128 * (rounds + 1));
   int m = 128;
 
   GarbledCircuit aesCircuit;
@@ -256,49 +236,6 @@ int main() {
   int i, j;
   buildAESCircuit();
   exit(5);
-  readCircuitFromFile(&aesCircuit, AES_CIRCUIT_FILE_NAME);
-
-  int timeGarble[TIMES];
-  int timeEval[TIMES];
-  double timeGarbleMedians[TIMES];
-  double timeEvalMedians[TIMES];
-
-  for (j = 0; j < 1; j++) {
-    for (i = 0; i < 1; i++) {
-      timeGarble[i] = garbleCircuit(&aesCircuit, inputLabels, outputMap);
-
-      //JMS: Replace timing with check for correctness
-      block finalOutput[m];
-      block extractedLabels[n];
-
-      int inputs[n];
-      for (j = 0; j < n; j++) {
-        inputs[j] = rand() % 2;
-      }
-      extractLabels(extractedLabels, inputLabels, inputs, n);
-
-      evaluate(&aesCircuit, extractedLabels, finalOutput);
-
-      int outputVals[m];
-      memset(outputVals, 0, sizeof(int) * m);
-      mapOutputs(outputMap, finalOutput, outputVals, m);
-
-      //Should be 1's and 0's.
-      int x;
-      printf("Final output of circuit: ");
-      for(x = 0; x < m; x++){
-        printf("%u", outputVals[x]);
-      }
-      printf("\n");
-      //timeEval[i] = timedEval(&aesCircuit, inputLabels);
-    }
-    //timeGarbleMedians[j] = ((double) median(timeGarble, TIMES))
-    //		/ aesCircuit.q;
-    //timeEvalMedians[j] = ((double) median(timeEval, TIMES)) / aesCircuit.q;
-  }
-  //double garblingTime = doubleMean(timeGarbleMedians, TIMES);
-  //double evalTime = doubleMean(timeEvalMedians, TIMES);
-  //printf("%lf %lf\n", garblingTime, evalTime);
   return 0;
 }
 

@@ -448,31 +448,26 @@ static void Cipher(void)
 
   // Add the First round key to the state before starting the rounds.
 
-  SubBytes();
-  printf("InterMed:\n");
-  print_intermed_state();
-  printf("\n");
   // There will be Nr rounds.
+  AddRoundKey(0);
   // The first Nr-1 rounds are identical.
   // These Nr-1 rounds are executed in the loop below.
-  /*for(round = 1; round < Nr; ++round)
+  for(round = 1; round < 10; ++round)
   {
     SubBytes();
-    if(round == 1){
-      printf("SUB BYTES\n");
-      print_intermed_state();
-      printf("\n");
-    }
     ShiftRows();
+    
     MixColumns();
+    
     AddRoundKey(round);
-  }
   
+  }
   // The last round is given below.
   // The MixColumns function is not here in the last round.
   SubBytes();
+  
   ShiftRows();
-  AddRoundKey(Nr);*/
+  AddRoundKey(Nr);
 }
 
 static void InvCipher(void)
